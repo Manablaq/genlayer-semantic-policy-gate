@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Semantic Policy Gate</title>
+    <meta name="description" content="Documentation for SemanticPolicyGate, a reusable GenLayer Intelligent Contract primitive for policy compliance decisions.">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="eyebrow">GenLayer Intelligent Contract</div>
+        <h1>Reusable policy decisions for contracts, agents, DAOs, and marketplaces.</h1>
+        <p>
+          SemanticPolicyGate registers natural-language policies and resolves submitted content into structured decisions: allowed, denied, needs_review, or error.
+        </p>
+        <pre><code>policy + subject + content + context -> allowed / denied / needs_review</code></pre>
+      </section>
+
+      <section class="section">
+        <h2>Why It Matters</h2>
+        <div class="grid">
+          <div class="card">
+            <strong>Policy Registry</strong>
+            <p>Versioned policy records keep decisions tied to the exact rules used.</p>
+          </div>
+          <div class="card">
+            <strong>Resolver Profiles</strong>
+            <p>Use deterministic checks for structured evidence and semantic consensus for ambiguous content.</p>
+          </div>
+          <div class="card">
+            <strong>Verifier API</strong>
+            <p>Downstream contracts can call is_allowed, is_denied, needs_review, and is_fresh.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Architecture</h2>
+        <img class="diagram" src="assets/architecture.svg" alt="Semantic Policy Gate architecture diagram">
+      </section>
+
+      <section class="section">
+        <h2>Core API</h2>
+        <pre><code>register_policy(name, policy_text) -> u256
+submit_decision(policy_id, subject, content_uri, content_text, context, ttl_seconds) -> u256
+resolve_required_fields_decision(decision_id) -> None
+resolve_semantic_decision(decision_id) -> None
+get_decision(decision_id) -> Decision
+is_allowed(decision_id, min_confidence) -> bool
+is_denied(decision_id, min_confidence) -> bool
+needs_review(decision_id) -> bool</code></pre>
+      </section>
+
+      <section class="section">
+        <h2>Bradbury Smoke Test</h2>
+        <p>
+          The first deployment target should use the deterministic required-fields resolver.
+        </p>
+        <pre><code>Expected:
+decision: 1
+confidence: 9500
+reason_code: required_fields_present
+is_allowed(decision_id, 7000): true</code></pre>
+      </section>
+    </main>
+  </body>
+</html>
