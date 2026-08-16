@@ -14,4 +14,23 @@ Builders can use it for bounty acceptance, DAO proposal gates, marketplace rules
 
 ## Deployment Evidence
 
-Use the new Bradbury address and accepted deployment transaction recorded after deploying the corrected matching Studio source. The prior deployment is historical only.
+Corrected contract: `0xE8f0091c7b95d8D15813aAdFF593c4Df4E7c8fea`.
+
+Accepted deployment transaction:
+`0x22ebced9109c006611152b4fbf3f944d6cf424ac921aa2409ab50d5d0e97b43f`.
+
+The deployed source is commit `27911d9875debd18603952ea0b8431ee8e1629bd` and
+matches `studio_bradbury/semantic_policy_gate.py`. The prior deployment is
+historical only.
+
+The corrected deployment has both Bradbury consensus paths documented in
+`TEST_LOG_BRADBURY.md`:
+
+- allowed: `decision_id 1`, exact confidence `9500`, `consensus_bound: true`,
+  `is_allowed(1, 9500) = true`, and `is_denied(1, 9500) = false`;
+- denied: `decision_id 2`, exact confidence `9500`,
+  `is_denied(2, 9500) = true`, and `is_allowed(2, 9500) = false`.
+
+The two resolutions independently fetched the IANA Example Domains page and
+reapplied the policy snapshot, proving that contradictory outcomes cannot pass
+the same downstream authorization check.
