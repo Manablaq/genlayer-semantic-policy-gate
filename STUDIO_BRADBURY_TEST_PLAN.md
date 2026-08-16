@@ -1,167 +1,54 @@
 # Studio Bradbury Test Plan
 
-Use this plan to deploy and test `SemanticPolicyGate` in GenLayer Studio on Bradbury Testnet.
+## Pre-deploy Integrity Check
 
-## Deploy
+1. In GenLayer Studio create `semantic_policy_gate.py`.
+2. Paste `studio_bradbury/semantic_policy_gate.py` exactly.
+3. Confirm it matches `contracts/semantic_policy_gate.py` byte-for-byte in the repository.
+4. Deploy a new instance; do not upgrade or reuse the historical rejected deployment.
+5. Save the address and accepted deployment transaction in `DEPLOYMENT_BRADBURY.md`.
 
-1. Open GenLayer Studio.
-2. Confirm the selected network is `Genlayer Bradbury Testnet`.
-3. Create a new contract file named `semantic_policy_gate.py`.
-4. Paste the code from `studio_bradbury/semantic_policy_gate.py`.
-5. Deploy a new instance.
+## Smoke Test 1: Register a Policy
 
-The contract constructor takes no arguments.
+Call `register_policy`:
 
-## Smoke Test 1: Register Policy
+```text
+name: Documentation claim policy
+policy_text: Allow only when the registered evidence explicitly states that the submitted claim is true. Deny only when it explicitly states the opposite. Use needs_review when the evidence is absent, ambiguous, or does not address the claim.
+```
+
+## Smoke Test 2: Submit a Decision
+
+Call `submit_decision` using a stable public HTTPS page as `content_uri`, a matching claim as `subject`, concise supporting `content_text`, and a nonzero TTL.
+
+The request captures the exact policy text and digest. Changing the policy later cannot alter this request's evaluation rule.
+
+## Smoke Test 3: Resolve With Independent Consensus
 
 Call:
 
 ```text
-register_policy
+resolve_semantic_decision(decision_id)
 ```
 
-Inputs:
+Expected behavior:
+
+- Each validator independently fetches the registered URI and reapplies the stored policy.
+- `strict_eq` accepts only an identical canonical decision, confidence, reason code, summary, and evidence digest.
+- The resulting record has `consensus_bound: true`.
+
+## Smoke Test 4: Verify Consumer Binding
+
+Call `get_decision(decision_id)`, then call one of:
 
 ```text
-name:
-GenLayer Submission Completeness Policy
+is_allowed(decision_id, 9500)
+is_denied(decision_id, 9500)
+needs_review(decision_id)
 ```
 
-```text
-policy_text:
-A valid GenLayer contract submission must include a repository URL, documentation URL, Bradbury contract address, and test evidence. Allow submissions that clearly include all four. Deny submissions that include none. Mark incomplete or ambiguous submissions as needs_review.
-```
+Only the method matching the stored canonical decision can return `true`; `is_allowed` and `is_denied` also require `consensus_bound: true` and freshness.
 
-Expected:
+## Regression Check
 
-```text
-ACCEPTED / AGREE / FINISHED_WITH_RETURN
-policy_id: 1
-```
-
-## Smoke Test 2: Submit Decision
-
-Call:
-
-```text
-submit_decision
-```
-
-Inputs:
-
-```text
-policy_id:
-1
-```
-
-```text
-subject:
-OutcomeAttestationRegistry submission
-```
-
-```text
-content_uri:
-https://github.com/Manablaq/genlayer-outcome-attestation-registry
-```
-
-```text
-content_text:
-Repository: https://github.com/Manablaq/genlayer-outcome-attestation-registry
-Documentation: https://manablaq.github.io/genlayer-outcome-attestation-registry/
-Contract: 0xd660ef089b4798e9c47B94CDDDE0EcEe5Fd29F63
-Test Evidence: https://github.com/Manablaq/genlayer-outcome-attestation-registry/blob/main/TEST_LOG_BRADBURY.md
-```
-
-```text
-context:
-Submission package for a reusable GenLayer Intelligent Contract primitive.
-```
-
-```text
-ttl_seconds:
-604800
-```
-
-Expected:
-
-```text
-decision_id: 1
-```
-
-## Smoke Test 3: Resolve Deterministically
-
-Call:
-
-```text
-resolve_required_fields_decision
-```
-
-Input:
-
-```text
-decision_id:
-1
-```
-
-Expected:
-
-```text
-ACCEPTED / AGREE / FINISHED_WITH_RETURN
-```
-
-## Smoke Test 4: Read Decision
-
-Call:
-
-```text
-get_decision
-```
-
-Input:
-
-```text
-decision_id:
-1
-```
-
-Expected:
-
-```text
-decision: 1
-confidence: 9500
-reason_code: required_fields_present
-summary: The submission includes repository, documentation, contract address, and test evidence.
-```
-
-## Smoke Test 5: Consumer API
-
-Call:
-
-```text
-is_allowed
-```
-
-Inputs:
-
-```text
-decision_id:
-1
-min_confidence:
-7000
-```
-
-Expected:
-
-```text
-true
-```
-
-## Smoke Test 6: Fingerprint Reuse
-
-Call `submit_decision` again with the exact same inputs from Smoke Test 2.
-
-Expected:
-
-```text
-1
-```
+Do not look for or call `resolve_required_fields_decision`: it was removed because it could create authorization-relevant decisions without independent evidence review.

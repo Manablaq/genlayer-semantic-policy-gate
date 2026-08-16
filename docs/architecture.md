@@ -1,55 +1,13 @@
 # Architecture
 
-## Flow
-
 ```text
-Policy owner
-  |
-  | register_policy
-  v
-Versioned policy stored
-  |
-  | submit_decision
-  v
-Decision request stored
-  |
-  | resolver profile
-  v
-GenLayer consensus and deterministic storage
-  |
-  | verifier methods
-  v
-Consumer contract or frontend
+versioned policy -> immutable request snapshot -> independent validator evaluation
+                                              -> strict equality of canonical result
+                                              -> bound on-chain decision -> consumer verifier
 ```
 
-## Storage
+`_evaluate_semantic_snapshot` is the sole non-deterministic boundary. It only reads the immutable snapshot, fetches the registered evidence, and derives a canonical JSON result. It performs no storage writes or transfers.
 
-The contract stores three primary records:
+`resolve_semantic_decision` runs that evaluator under `gl.eq_principle.strict_eq`, validates the agreed result again, then writes the decision with `consensus_bound = true`. The `is_allowed` and `is_denied` views bind authorization to this flag, the exact outcome, canonical confidence, and freshness.
 
-- `Policy`
-- `DecisionRequest`
-- `Decision`
-
-Policies are versioned. Decision requests preserve the policy version used at submission time. Decisions store compact, integration-ready outputs.
-
-## Resolver Strategy
-
-The contract supports multiple resolver profiles:
-
-- deterministic resolver for structured evidence completeness
-- semantic resolver for language-heavy policy decisions
-
-This keeps the registry reusable while allowing domain-specific logic to be added over time.
-
-## Consumer Surface
-
-The most important integration methods are:
-
-```python
-is_allowed(decision_id, min_confidence)
-is_denied(decision_id, min_confidence)
-needs_review(decision_id)
-is_fresh(decision_id)
-```
-
-These methods turn policy compliance into a clean on-chain primitive.
+No source-free resolver profile exists, because all authorization-relevant outcomes must use the same independently reviewed evidence path.

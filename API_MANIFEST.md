@@ -4,70 +4,17 @@
 
 `SemanticPolicyGate`
 
-## Constructor
-
-```python
-__init__()
-```
-
-No arguments.
-
 ## Write Methods
-
-### register_policy
 
 ```python
 register_policy(name: str, policy_text: str) -> u256
-```
-
-Creates a versioned policy.
-
-### update_policy
-
-```python
 update_policy(policy_id: u256, name: str, policy_text: str) -> None
-```
-
-Updates a policy and increments its version. Only the policy owner can update.
-
-### set_policy_active
-
-```python
 set_policy_active(policy_id: u256, active: bool) -> None
-```
-
-Activates or deactivates a policy. Only the policy owner can update.
-
-### submit_decision
-
-```python
-submit_decision(
-    policy_id: u256,
-    subject: str,
-    content_uri: str,
-    content_text: str,
-    context: str,
-    ttl_seconds: u256,
-) -> u256
-```
-
-Creates a decision request or returns an existing fresh request/decision for the same policy version and canonical content fingerprint.
-
-### resolve_required_fields_decision
-
-```python
-resolve_required_fields_decision(decision_id: u256) -> None
-```
-
-Deterministic resolver profile for evidence-completeness checks.
-
-### resolve_semantic_decision
-
-```python
+submit_decision(policy_id: u256, subject: str, content_uri: str, content_text: str, context: str, ttl_seconds: u256) -> u256
 resolve_semantic_decision(decision_id: u256) -> None
 ```
 
-Generic semantic resolver for policy compliance decisions.
+`submit_decision` snapshots `policy_name`, `policy_text`, `policy_digest`, evidence inputs, and expiry. `resolve_semantic_decision` independently evaluates that immutable snapshot on every validator and accepts only strict equality of the full canonical result.
 
 ## View Methods
 
@@ -80,6 +27,8 @@ is_denied(decision_id: u256, min_confidence: u32) -> bool
 needs_review(decision_id: u256) -> bool
 is_fresh(decision_id: u256) -> bool
 ```
+
+`is_allowed` and `is_denied` require a fresh `consensus_bound` decision. They cannot authorize from a schema-valid but unbound result.
 
 ## Decision Codes
 
@@ -112,6 +61,9 @@ active: bool
 requester: Address
 policy_id: u256
 policy_version: u256
+policy_name: str
+policy_text: str
+policy_digest: str
 subject: str
 content_uri: str
 content_text: str
@@ -138,6 +90,8 @@ decision: u32
 confidence: u32
 reason_code: str
 summary: str
+evidence_digest: str
+consensus_bound: bool
 created_at: u256
 resolved_at: u256
 expires_at: u256

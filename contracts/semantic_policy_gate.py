@@ -86,10 +86,43 @@ def _normalize_semantic_decision(raw):
 
     return {
         "decision": decision,
-        "confidence": _clamp_confidence(raw.get("confidence", 0)),
-        "reason_code": _safe_reason_code(str(raw.get("reason_code", "unspecified"))),
-        "summary": str(raw.get("summary", ""))[:512],
+        "confidence": _canonical_confidence(decision),
+        "reason_code": _canonical_reason_code(decision),
+        "summary": _canonical_summary(decision),
     }
+
+
+def _canonical_confidence(decision: str) -> int:
+    if decision == "allowed" or decision == "denied":
+        return 9500
+    if decision == "needs_review":
+        return 6000
+    return 0
+
+
+def _canonical_reason_code(decision: str) -> str:
+    if decision == "allowed":
+        return "policy_satisfied"
+    if decision == "denied":
+        return "policy_violated"
+    if decision == "needs_review":
+        return "insufficient_or_ambiguous_evidence"
+    return "evaluation_error"
+
+
+def _canonical_summary(decision: str) -> str:
+    if decision == "allowed":
+        return "The registered policy is satisfied by the independently reviewed evidence."
+    if decision == "denied":
+        return "The registered policy is violated by the independently reviewed evidence."
+    if decision == "needs_review":
+        return "The registered evidence is insufficient or ambiguous under the stored policy."
+    return "The registered evidence could not be evaluated."
+
+
+def _semantic_evidence_digest(content_uri: str, fetched_content: str) -> str:
+    material = _canonical(content_uri) + "::" + _canonical(fetched_content)
+    return material[:512]
 
 
 def _is_valid_semantic_decision(data) -> bool:
@@ -103,6 +136,10 @@ def _is_valid_semantic_decision(data) -> bool:
         and isinstance(data.get("reason_code"), str)
         and isinstance(data.get("summary"), str)
         and len(data.get("summary")) <= 512
+        and isinstance(data.get("evidence_digest"), str)
+        and data.get("confidence") == _canonical_confidence(data.get("decision"))
+        and data.get("reason_code") == _canonical_reason_code(data.get("decision"))
+        and data.get("summary") == _canonical_summary(data.get("decision"))
     )
 
 
@@ -177,6 +214,30 @@ Fetched content:
 """
 
 
+def _evaluate_semantic_snapshot(snapshot) -> str:
+    """The complete non-deterministic boundary for semantic authorization."""
+    fetched_content = _fetch_text_body(snapshot["content_uri"])
+    prompt = _build_policy_prompt(
+        snapshot["policy_name"],
+        snapshot["policy_text"],
+        snapshot["subject"],
+        snapshot["content_uri"],
+        snapshot["content_text"],
+        fetched_content,
+        snapshot["context"],
+    )
+    try:
+        raw = gl.nondet.exec_prompt(prompt, response_format="json")
+    except Exception:
+        raw = {"decision": "error"}
+
+    result = _normalize_semantic_decision(raw)
+    result["evidence_digest"] = _semantic_evidence_digest(
+        snapshot["content_uri"], fetched_content
+    )
+    return json.dumps(result, sort_keys=True)
+
+
 @allow_storage
 @dataclass
 class Policy:
@@ -196,6 +257,9 @@ class DecisionRequest:
     requester: Address
     policy_id: u256
     policy_version: u256
+    policy_name: str
+    policy_text: str
+    policy_digest: str
     subject: str
     content_uri: str
     content_text: str
@@ -217,6 +281,7 @@ class Decision:
     content_uri: str
     content_digest: str
     context_digest: str
+    evidence_digest: str
     fingerprint: str
     decision: u32
     confidence: u32
@@ -226,6 +291,7 @@ class Decision:
     resolved_at: u256
     expires_at: u256
     resolver: Address
+    consensus_bound: bool
 
 
 class SemanticPolicyGate(gl.Contract):
@@ -349,6 +415,9 @@ class SemanticPolicyGate(gl.Contract):
             requester=gl.message.sender_address,
             policy_id=policy_id,
             policy_version=policy.version,
+            policy_name=policy.name,
+            policy_text=policy.policy_text,
+            policy_digest=policy.policy_digest,
             subject=subject,
             content_uri=content_uri,
             content_text=content_text,
@@ -363,46 +432,6 @@ class SemanticPolicyGate(gl.Contract):
         return decision_id
 
     @gl.public.write
-    def resolve_required_fields_decision(self, decision_id: u256) -> None:
-        req = self.requests.get(decision_id)
-        if req.created_at == u256(0):
-            raise gl.vm.UserError("unknown decision request")
-        if req.resolved:
-            raise gl.vm.UserError("decision already resolved")
-
-        normalized = _canonical(req.content_text + " " + req.context + " " + req.content_uri)
-
-        has_repo = "github.com/" in normalized or "repository:" in normalized or "repo:" in normalized
-        has_docs = "documentation" in normalized or "docs:" in normalized or "github.io" in normalized
-        has_contract = "0x" in normalized and len(normalized) >= 42
-        has_test = "test evidence" in normalized or "test_log" in normalized or "bradbury" in normalized
-
-        decision = DECISION_NEEDS_REVIEW
-        confidence = u32(5000)
-        reason_code = "missing_required_fields"
-        summary = "The submission is missing one or more required evidence fields."
-
-        if has_repo and has_docs and has_contract and has_test:
-            decision = DECISION_ALLOWED
-            confidence = u32(9500)
-            reason_code = "required_fields_present"
-            summary = "The submission includes repository, documentation, contract address, and test evidence."
-        elif not has_repo and not has_docs and not has_contract and not has_test:
-            decision = DECISION_DENIED
-            confidence = u32(9000)
-            reason_code = "no_required_evidence"
-            summary = "The submission does not include the required evidence fields."
-
-        self._store_decision(
-            decision_id,
-            req,
-            decision,
-            confidence,
-            reason_code,
-            summary,
-        )
-
-    @gl.public.write
     def resolve_semantic_decision(self, decision_id: u256) -> None:
         req = self.requests.get(decision_id)
         if req.created_at == u256(0):
@@ -410,45 +439,25 @@ class SemanticPolicyGate(gl.Contract):
         if req.resolved:
             raise gl.vm.UserError("decision already resolved")
 
-        policy = self.policies.get(req.policy_id)
-        if policy.created_at == u256(0):
-            raise gl.vm.UserError("unknown policy")
+        snapshot = {
+            "policy_name": req.policy_name,
+            "policy_text": req.policy_text,
+            "policy_digest": req.policy_digest,
+            "subject": req.subject,
+            "content_uri": req.content_uri,
+            "content_text": req.content_text,
+            "context": req.context,
+        }
 
-        policy_name = policy.name
-        policy_text = policy.policy_text
-        subject = req.subject
-        content_uri = req.content_uri
-        content_text = req.content_text
-        context = req.context
+        def evaluate_semantic_decision() -> str:
+            # Each validator fetches the registered evidence and reapplies the
+            # immutable policy snapshot. No storage is touched in this boundary.
+            return _evaluate_semantic_snapshot(snapshot)
 
-        def leader_fn():
-            fetched = _fetch_text_body(content_uri)
-            prompt = _build_policy_prompt(
-                policy_name,
-                policy_text,
-                subject,
-                content_uri,
-                content_text,
-                fetched,
-                context,
-            )
-            try:
-                raw = gl.nondet.exec_prompt(prompt, response_format="json")
-            except Exception as exc:
-                raw = {
-                    "decision": "error",
-                    "confidence": 0,
-                    "reason_code": "llm_call_failed",
-                    "summary": str(exc)[:256],
-                }
-            return _normalize_semantic_decision(raw)
-
-        def validator_fn(leader_result) -> bool:
-            if not isinstance(leader_result, gl.vm.Return):
-                return False
-            return _is_valid_semantic_decision(leader_result.calldata)
-
-        agreed = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+        agreed_json = gl.eq_principle.strict_eq(evaluate_semantic_decision)
+        agreed = _coerce_json_object(agreed_json)
+        if not _is_valid_semantic_decision(agreed):
+            raise gl.vm.UserError("consensus returned an invalid semantic decision")
 
         self._store_decision(
             decision_id,
@@ -457,6 +466,7 @@ class SemanticPolicyGate(gl.Contract):
             u32(int(agreed["confidence"])),
             str(agreed["reason_code"])[:64],
             str(agreed["summary"])[:512],
+            str(agreed["evidence_digest"])[:512],
         )
 
     @gl.public.view
@@ -500,6 +510,7 @@ class SemanticPolicyGate(gl.Contract):
         decision = self.decisions.get(decision_id)
         return (
             decision.decision == DECISION_ALLOWED
+            and decision.consensus_bound
             and decision.confidence >= min_confidence
             and decision.expires_at > self._now()
         )
@@ -509,6 +520,7 @@ class SemanticPolicyGate(gl.Contract):
         decision = self.decisions.get(decision_id)
         return (
             decision.decision == DECISION_DENIED
+            and decision.consensus_bound
             and decision.confidence >= min_confidence
             and decision.expires_at > self._now()
         )
@@ -534,6 +546,7 @@ class SemanticPolicyGate(gl.Contract):
         confidence: u32,
         reason_code: str,
         summary: str,
+        evidence_digest: str,
     ) -> None:
         capped_confidence = confidence
         if capped_confidence > MAX_CONFIDENCE:
@@ -549,6 +562,7 @@ class SemanticPolicyGate(gl.Contract):
             content_uri=req.content_uri,
             content_digest=_text_digest(req.content_text),
             context_digest=_text_digest(req.context),
+            evidence_digest=evidence_digest[:512],
             fingerprint=req.fingerprint,
             decision=decision,
             confidence=capped_confidence,
@@ -558,6 +572,7 @@ class SemanticPolicyGate(gl.Contract):
             resolved_at=now,
             expires_at=req.expires_at,
             resolver=gl.message.sender_address,
+            consensus_bound=True,
         )
 
         req.resolved = True

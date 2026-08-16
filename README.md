@@ -1,51 +1,24 @@
 # Semantic Policy Gate
 
-`SemanticPolicyGate` is a reusable GenLayer **Intelligent Contract** primitive for registering natural-language policies and resolving whether submitted actions, content, agent outputs, or project submissions comply with those policies.
-
-It is designed as infrastructure for builders who need a shared on-chain decision about policy compliance.
+`SemanticPolicyGate` is a reusable GenLayer Intelligent Contract primitive for registering natural-language policies and producing consensus-bound `allowed`, `denied`, or `needs_review` decisions.
 
 ```text
-policy + subject + content + context -> allowed / denied / needs_review
+policy snapshot + submitted evidence -> independently reviewed consensus decision
 ```
 
-## Why This Exists
+## Security Model
 
-Many GenLayer applications need policy decisions:
+The consequential result is not accepted merely because it has the right JSON shape. When `resolve_semantic_decision` runs, every validator independently fetches the request's registered evidence, reapplies the immutable policy snapshot captured at submission, and independently derives a canonical result. `strict_eq` requires those full canonical results to match before storage changes.
 
-- Does a bounty submission satisfy the requirements?
-- Does a DAO proposal follow governance rules?
-- Does an agent output meet task acceptance criteria?
-- Does a marketplace listing comply with listing policy?
-- Does a grant application include enough required evidence?
+The contract stores the exact resulting decision, canonical confidence, reason code, summary, and evidence digest with `consensus_bound = true`. `is_allowed` and `is_denied` return `true` only for a fresh, consensus-bound result with the requested canonical outcome and confidence threshold.
 
-Without a reusable primitive, every app must rebuild policy registration, request tracking, semantic evaluation, result storage, expiry, caching, and verifier methods.
-
-## Core Contract
-
-```text
-contracts/semantic_policy_gate.py
-```
-
-Active Bradbury deployment:
-
-```text
-0xc088550EAE168Ccf2027d530Afc495Bb14767CC9
-```
-
-Studio paste-ready copy:
-
-```text
-studio_bradbury/semantic_policy_gate.py
-```
-
-## Public API
+## Core API
 
 ```python
 register_policy(name, policy_text) -> u256
 update_policy(policy_id, name, policy_text) -> None
 set_policy_active(policy_id, active) -> None
 submit_decision(policy_id, subject, content_uri, content_text, context, ttl_seconds) -> u256
-resolve_required_fields_decision(decision_id) -> None
 resolve_semantic_decision(decision_id) -> None
 get_policy(policy_id) -> Policy
 get_decision(decision_id) -> Decision
@@ -56,91 +29,32 @@ needs_review(decision_id) -> bool
 is_fresh(decision_id) -> bool
 ```
 
-## Decision Codes
+There is deliberately no source-free required-fields resolver. Every authorization-relevant decision follows the same independently reviewed evidence path.
+
+## Canonical Decisions
 
 ```text
-0 = unknown
-1 = allowed
-2 = denied
-3 = needs_review
-4 = error
+allowed       confidence 9500
+denied        confidence 9500
+needs_review  confidence 6000
+error         confidence 0
 ```
 
-## Resolver Profiles
+Confidence is derived from the agreed decision, rather than trusted from the model response. This prevents a validator-compatible response from changing downstream authorization by varying decision metadata.
 
-### Required Fields Resolver
+## Deployment Status
 
-```python
-resolve_required_fields_decision(decision_id)
-```
-
-Deterministic resolver profile for Bradbury smoke tests and structured submission checks. It verifies that a submission includes:
-
-- repository evidence
-- documentation evidence
-- contract address
-- test evidence
-
-### Semantic Resolver
-
-```python
-resolve_semantic_decision(decision_id)
-```
-
-Generic policy resolver for natural-language decisions. It evaluates submitted text and optional fetched content against the registered policy using GenLayer's AI-validator consensus model.
-
-## Bradbury Smoke Test Target
-
-Positive test policy:
-
-```text
-A valid GenLayer contract submission must include a repository URL, documentation URL, Bradbury contract address, and test evidence.
-```
-
-Positive submission:
-
-```text
-Repository: https://github.com/Manablaq/genlayer-outcome-attestation-registry
-Documentation: https://manablaq.github.io/genlayer-outcome-attestation-registry/
-Contract: 0xd660ef089b4798e9c47B94CDDDE0EcEe5Fd29F63
-Test Evidence: https://github.com/Manablaq/genlayer-outcome-attestation-registry/blob/main/TEST_LOG_BRADBURY.md
-```
-
-Expected:
-
-```text
-decision: 1
-confidence: 9500
-reason_code: required_fields_present
-is_allowed(decision_id, 7000): true
-```
+The prior Bradbury deployment at `0xc088550EAE168Ccf2027d530Afc495Bb14767CC9` is historical and must not be used for this corrected version. Deploy a fresh instance from the byte-identical source in `studio_bradbury/semantic_policy_gate.py`, record its accepted transaction, and update the deployment log before resubmission.
 
 ## Repository Layout
 
 ```text
-contracts/
-  semantic_policy_gate.py
-
-studio_bradbury/
-  semantic_policy_gate.py
-
-examples/
-  consumer_contract.py
-  genlayer-js-usage.ts
-
-docs/
-  guide.md
-  architecture.md
-  testing.md
-  submission.md
-
-API_MANIFEST.md
-DEPLOYMENT_BRADBURY.md
-STUDIO_BRADBURY_TEST_PLAN.md
-SUBMISSION_BRIEF.md
-TEST_LOG_BRADBURY.md
+contracts/semantic_policy_gate.py        Primary source
+studio_bradbury/semantic_policy_gate.py  Paste-ready, byte-identical Studio source
+tests/test_consensus_design.py            Static regression checks for the consensus boundary
+docs/                                    Guide, architecture, testing, and submission material
 ```
 
-## Submission Positioning
+## Reuse
 
-This is not a one-off policy checker. It is a reusable policy-decision layer for GenLayer applications that need trustless adjudication over natural-language rules and submitted evidence.
+The verifier surface lets bounty platforms, DAOs, agent workflows, listing systems, grants, and escrow contracts consume a compact, auditable policy decision without parsing prose or trusting an off-chain reviewer.

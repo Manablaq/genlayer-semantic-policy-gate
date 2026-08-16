@@ -53,9 +53,11 @@ await client.waitForTransactionReceipt({
   status: TransactionStatus.FINALIZED,
 });
 
+// This triggers strict consensus. Each validator independently fetches the
+// registered URI and reapplies the immutable policy before a decision is stored.
 const resolveTx = await client.writeContract({
   address: gateAddress,
-  functionName: "resolve_required_fields_decision",
+  functionName: "resolve_semantic_decision",
   args: [1n],
   value: BigInt(0),
 });

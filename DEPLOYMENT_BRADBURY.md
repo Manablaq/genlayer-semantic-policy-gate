@@ -1,51 +1,23 @@
-# Bradbury Deployment
+# Bradbury Deployment Record
 
-## Network
-
-GenLayer Bradbury Testnet
-
-## Contract
-
-`SemanticPolicyGate`
-
-## Contract Address
+## Historical Deployment - Not Valid for Resubmission
 
 ```text
-0xc088550EAE168Ccf2027d530Afc495Bb14767CC9
+contract: 0xc088550EAE168Ccf2027d530Afc495Bb14767CC9
+deployment_tx: 0x995779a73575b108ab01b4b00c9cf59b6a0bdc1b78d0fa795eadcdfd0988a800
 ```
 
-## Deploy Transaction
+This deployment predates the independent-evidence consensus redesign and must not be cited as the corrected contract.
+
+## Corrected Deployment Checklist
+
+After deploying `studio_bradbury/semantic_policy_gate.py`, record:
 
 ```text
-0x995779a73575b108ab01b4b00c9cf59b6a0bdc1b78d0fa795eadcdfd0988a800
+contract: <new Bradbury address>
+deployment_tx: <accepted deployment transaction>
+source_commit: <commit containing this redesign>
+source_match: contracts/semantic_policy_gate.py == studio_bradbury/semantic_policy_gate.py
 ```
 
-## Deployment Result
-
-```text
-statusName: ACCEPTED
-resultName: AGREE
-txExecutionResultName: FINISHED_WITH_RETURN
-```
-
-## Recorded At
-
-```text
-2026-08-07T20:16:06Z
-```
-
-## Next Test
-
-Call `register_policy` using the first smoke-test payload in `STUDIO_BRADBURY_TEST_PLAN.md`.
-
-## Successful Smoke Test
-
-```text
-policy_id: 1
-decision_id: 1
-decision: 1
-confidence: 9500
-reason_code: required_fields_present
-is_allowed(1, 7000): true
-get_latest_decision_by_fingerprint(...): 1
-```
+The corrected deployment is ready for evidence only after its deployment transaction is accepted and the smoke test demonstrates a `consensus_bound` decision.

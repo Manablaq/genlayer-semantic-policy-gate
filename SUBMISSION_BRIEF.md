@@ -1,67 +1,17 @@
 # Submission Brief
 
-## Contract
+## Semantic Policy Gate
 
-`SemanticPolicyGate`
+A reusable GenLayer Intelligent Contract primitive that turns an immutable natural-language policy and public evidence into a consensus-bound authorization decision.
 
-## Category
+## What Makes It Safe to Compose
 
-Reusable GenLayer Intelligent Contract primitive.
+For every resolution, validators independently fetch the registered evidence and reapply the policy snapshot captured with the request. `strict_eq` binds the complete canonical result: decision, derived confidence, reason code, summary, and evidence digest. Storage is updated only after that agreement. Consumer methods `is_allowed` and `is_denied` require a fresh, consensus-bound decision, so a schema-valid but contradictory model response cannot authorize an action.
 
-## Summary
+## Reuse
 
-`SemanticPolicyGate` lets builders register natural-language policies and resolve whether submitted content, actions, agent outputs, or project submissions comply with those policies.
+Builders can use it for bounty acceptance, DAO proposal gates, marketplace rules, grant review, agent output checks, moderation, and escrow conditions. Policies are versioned; requests preserve the exact policy text and digest used for evaluation; fingerprints reuse fresh equivalent work.
 
-## Problem
+## Deployment Evidence
 
-Many GenLayer applications need a shared decision about policy compliance. Traditional contracts cannot interpret natural-language policies or messy evidence, and centralized moderation or review services become trusted intermediaries.
-
-## Primitive Provided
-
-The contract standardizes:
-
-```text
-policy + subject + content + context -> allowed / denied / needs_review
-```
-
-It stores versioned policies, decision requests, structured decision results, confidence, reason codes, summaries, expiry, and canonical fingerprints.
-
-## Reusable Integrations
-
-This primitive can be used by:
-
-- bounty platforms
-- DAO proposal gates
-- agent marketplaces
-- content moderation systems
-- grant review processes
-- reputation registries
-- marketplace listing reviews
-- escrow release conditions
-
-## Key Design Choices
-
-- Versioned policies for auditability.
-- Decision fingerprints for reuse and caching.
-- Deterministic resolver profile for Bradbury smoke tests.
-- Generic semantic resolver for natural-language policy decisions.
-- Small verifier methods for downstream integrations.
-
-## Why It Fits GenLayer
-
-Policy compliance often depends on language, evidence, ambiguity, and judgment. GenLayer makes that adjudication on-chain and consensus-backed instead of outsourcing it to an operator.
-
-## Bradbury Smoke Test
-
-The deterministic required-fields resolver passed on GenLayer Bradbury Testnet:
-
-```text
-contract: 0xc088550EAE168Ccf2027d530Afc495Bb14767CC9
-policy_id: 1
-decision_id: 1
-decision: allowed
-confidence: 9500
-reason_code: required_fields_present
-is_allowed(1, 7000): true
-get_latest_decision_by_fingerprint(...): 1
-```
+Use the new Bradbury address and accepted deployment transaction recorded after deploying the corrected matching Studio source. The prior deployment is historical only.
