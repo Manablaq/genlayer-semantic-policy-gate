@@ -9,8 +9,8 @@
 | Deployment transaction | `PENDING_FRESH_DEPLOYMENT` |
 | Canonical source | `contracts/semantic_policy_gate.py` |
 | Studio source | `studio_bradbury/semantic_policy_gate.py` |
-| Source commit | `PENDING_IMPLEMENTATION_COMMIT` |
-| Source SHA-256 | `PENDING_IMPLEMENTATION_COMMIT` |
+| Source commit | `b132d803d86fd8b2b5ad1bd3ee520522ff6c505c` |
+| Source SHA-256 | `d6a45c984c2f9258fedde84b08bbe046107ccf5f1c5d4761a7ce96ba05f5a724` |
 | Local regressions | 19 passing |
 
 A fresh deployment is mandatory because GenLayer contracts are immutable and the security model changed materially. The deployed Explorer source must match the canonical and Studio source byte-for-byte.

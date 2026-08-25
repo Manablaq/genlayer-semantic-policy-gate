@@ -2,6 +2,10 @@
 
 ## Local submission gate
 
+Implementation commit: `b132d803d86fd8b2b5ad1bd3ee520522ff6c505c`
+
+Canonical contract SHA-256: `d6a45c984c2f9258fedde84b08bbe046107ccf5f1c5d4761a7ce96ba05f5a724`
+
 | Check | Result |
 |---|---|
 | Contract Python compilation | PASS |

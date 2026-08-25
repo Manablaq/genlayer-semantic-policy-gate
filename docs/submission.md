@@ -11,7 +11,7 @@
 - [x] Missing records are controlled.
 - [x] Nineteen local regressions pass.
 - [x] GenVM lint and validation pass.
-- [ ] Implementation commit and source SHA recorded.
+- [x] Implementation commit and source SHA recorded.
 - [ ] Fresh hardened v2 contract deployed to Bradbury.
 - [ ] Explorer source confirmed to match the repository.
 - [ ] Live exact-fingerprint and altered-fingerprint checks recorded.
