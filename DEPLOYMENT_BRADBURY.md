@@ -14,7 +14,7 @@
 | Source SHA-256 | `d6a45c984c2f9258fedde84b08bbe046107ccf5f1c5d4761a7ce96ba05f5a724` |
 | Local regressions | 19 passing |
 
-The fresh deployment completed successfully. The deployment CLI submitted the canonical v2 source and returned `ACCEPTED / AGREE / FINISHED_WITH_RETURN`. Live behavioral regressions and an Explorer source-parity check remain required before resubmission.
+The fresh deployment completed successfully. The deployment CLI submitted the canonical v2 source and returned `ACCEPTED / AGREE / FINISHED_WITH_RETURN`. The Explorer Code tab matches the canonical repository source byte-for-byte (35,741 characters). Live positive and fail-closed regressions are recorded in `TEST_LOG_BRADBURY.md`.
 
 ## Historical deployment
 
@@ -28,4 +28,4 @@ From the repository root, with the intended account active and unlocked:
 genlayer deploy --contract contracts/semantic_policy_gate.py
 ```
 
-Complete every live test in `STUDIO_BRADBURY_TEST_PLAN.md` and add the accepted transaction links to `TEST_LOG_BRADBURY.md` before resubmission.
+The reproducible test sequence is documented in `STUDIO_BRADBURY_TEST_PLAN.md`; observed Bradbury results and transaction links are recorded in `TEST_LOG_BRADBURY.md`.

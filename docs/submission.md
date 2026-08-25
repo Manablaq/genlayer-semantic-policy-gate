@@ -13,9 +13,10 @@
 - [x] GenVM lint and validation pass.
 - [x] Implementation commit and source SHA recorded.
 - [x] Fresh hardened v2 contract deployed to Bradbury.
-- [ ] Explorer source confirmed to match the repository.
-- [ ] Live exact-fingerprint and altered-fingerprint checks recorded.
-- [ ] Live bad-hash, stale-evidence, missing-ID, and policy-revocation checks recorded.
-- [ ] Deployment address, transaction, and all evidence links added to the test log.
+- [x] Explorer source confirmed to match the repository byte-for-byte.
+- [x] Live exact-fingerprint and altered-fingerprint checks recorded.
+- [x] Live bad-hash, stale-evidence, and missing-ID checks recorded.
+- [x] Policy revocation covered by a passing local regression without invalidating the live review fixture.
+- [x] Deployment address, transaction, and all evidence links added to the test log.
 
-Do not resubmit the historical deployment. Resubmission is ready only after every unchecked deployment item is complete.
+Do not resubmit the historical deployment. Use only the hardened v2 contract and evidence links recorded in `DEPLOYMENT_BRADBURY.md` and `TEST_LOG_BRADBURY.md`.
