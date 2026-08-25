@@ -1,60 +1,57 @@
 # Semantic Policy Gate
 
-`SemanticPolicyGate` is a reusable GenLayer Intelligent Contract primitive for registering natural-language policies and producing consensus-bound `allowed`, `denied`, or `needs_review` decisions.
+Semantic Policy Gate is a reusable GenLayer intelligent-contract primitive for resolving policy decisions against authoritative, hash-pinned evidence. The hardened v2 contract binds every decision to the exact policy version, policy owner, subject, submitted content, context, evidence records, freshness rules, corroboration requirement, and decision lifetime.
 
-```text
-policy snapshot + submitted evidence -> independently reviewed consensus decision
+## Security model
+
+- **Specification-bound decisions:** a canonical SHA-256 fingerprint commits to every security-relevant input.
+- **Immutable evidence records:** each source is registered with an HTTPS URI, named authority, full-content SHA-256, version label, observation time, and maximum evidence age.
+- **Explicit corroboration:** callers choose one or two sources; two-source requests require distinct URIs and independently named authorities.
+- **Fail-closed integrity:** fetch failures, oversized responses, hash mismatches, insufficient verified sources, expired requests, and stale evidence cannot create a decision.
+- **Revocation-aware consumption:** policy updates and activation changes increment the policy version and invalidate previously issued authorization decisions.
+- **Consumer-bound authorization:** consumers must supply the expected fingerprint, expected policy owner, and their own maximum decision age. A caller cannot substitute an unrelated permissive decision.
+- **Exact consensus output:** validators agree on a strict canonical result containing only the decision and integrity metadata. Confidence scores are deliberately excluded from authorization.
+
+## Decision lifecycle
+
+1. Register a policy.
+2. Compute the expected fingerprint from the exact policy and evidence specification.
+3. Submit a decision request with one or two hash-pinned authoritative sources.
+4. Resolve through GenLayer equivalence consensus.
+5. Consume with `is_allowed_for`, `is_denied_for`, or `needs_review_for` using the expected fingerprint and policy owner.
+
+Decision codes are `0 unknown`, `1 allowed`, `2 denied`, `3 needs_review`, and `4 error`.
+
+## Repository layout
+
+- `contracts/semantic_policy_gate.py` — canonical contract source.
+- `studio_bradbury/semantic_policy_gate.py` — byte-identical Studio source.
+- `examples/consumer_contract.py` — safe downstream consumer pattern.
+- `examples/genlayer-js-usage.ts` — request and verification example.
+- `tests/test_consensus_design.py` — behavioral security regressions.
+- `API_MANIFEST.md` — complete public API.
+- `STUDIO_BRADBURY_TEST_PLAN.md` — reproducible live test procedure.
+
+## Verification
+
+```bash
+PYTHONPYCACHEPREFIX=/private/tmp/semantic-policy-gate-pycache \
+  python3 -m py_compile contracts/semantic_policy_gate.py \
+  studio_bradbury/semantic_policy_gate.py examples/consumer_contract.py
+
+PYTHONPYCACHEPREFIX=/private/tmp/semantic-policy-gate-pycache \
+  python3 -m unittest discover -s tests -p 'test_*.py'
+
+cmp contracts/semantic_policy_gate.py studio_bradbury/semantic_policy_gate.py
+git diff --check
 ```
 
-## Security Model
+The suite currently contains 19 regressions covering fingerprint collisions, suffix mutations, policy revocation, evidence integrity, corroboration, expiry, missing IDs, and consumer substitution.
 
-The consequential result is not accepted merely because it has the right JSON shape. When `resolve_semantic_decision` runs, every validator independently fetches the request's registered evidence, reapplies the immutable policy snapshot captured at submission, and independently derives a canonical result. `strict_eq` requires those full canonical results to match before storage changes.
+## Deployment status
 
-The contract stores the exact resulting decision, canonical confidence, reason code, summary, and evidence digest with `consensus_bound = true`. `is_allowed` and `is_denied` return `true` only for a fresh, consensus-bound result with the requested canonical outcome and confidence threshold.
+The original Bradbury deployment is historical and must not be submitted as the hardened contract. A fresh v2 deployment and matching Explorer source are required. See `DEPLOYMENT_BRADBURY.md` and `STUDIO_BRADBURY_TEST_PLAN.md`.
 
-## Core API
+## License
 
-```python
-register_policy(name, policy_text) -> u256
-update_policy(policy_id, name, policy_text) -> None
-set_policy_active(policy_id, active) -> None
-submit_decision(policy_id, subject, content_uri, content_text, context, ttl_seconds) -> u256
-resolve_semantic_decision(decision_id) -> None
-get_policy(policy_id) -> Policy
-get_decision(decision_id) -> Decision
-get_latest_decision_by_fingerprint(...) -> u256
-is_allowed(decision_id, min_confidence) -> bool
-is_denied(decision_id, min_confidence) -> bool
-needs_review(decision_id) -> bool
-is_fresh(decision_id) -> bool
-```
-
-There is deliberately no source-free required-fields resolver. Every authorization-relevant decision follows the same independently reviewed evidence path.
-
-## Canonical Decisions
-
-```text
-allowed       confidence 9500
-denied        confidence 9500
-needs_review  confidence 6000
-error         confidence 0
-```
-
-Confidence is derived from the agreed decision, rather than trusted from the model response. This prevents a validator-compatible response from changing downstream authorization by varying decision metadata.
-
-## Deployment Status
-
-The prior Bradbury deployment at `0xc088550EAE168Ccf2027d530Afc495Bb14767CC9` is historical and must not be used for this corrected version. Deploy a fresh instance from the byte-identical source in `studio_bradbury/semantic_policy_gate.py`, record its accepted transaction, and update the deployment log before resubmission.
-
-## Repository Layout
-
-```text
-contracts/semantic_policy_gate.py        Primary source
-studio_bradbury/semantic_policy_gate.py  Paste-ready, byte-identical Studio source
-tests/test_consensus_design.py            Static regression checks for the consensus boundary
-docs/                                    Guide, architecture, testing, and submission material
-```
-
-## Reuse
-
-The verifier surface lets bounty platforms, DAOs, agent workflows, listing systems, grants, and escrow contracts consume a compact, auditable policy decision without parsing prose or trusting an off-chain reviewer.
+MIT

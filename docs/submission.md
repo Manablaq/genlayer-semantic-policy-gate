@@ -1,32 +1,21 @@
-# Submission Summary
+# Submission Checklist
 
-## Contract
+- [x] Canonical v2 contract implemented.
+- [x] Studio source is byte-identical.
+- [x] Collision-resistant full fingerprints replace truncated text digests.
+- [x] Evidence is HTTPS, full-hash pinned, versioned, fresh, and optionally corroborated.
+- [x] Resolution fails closed on integrity or availability errors.
+- [x] Consumer authorization binds expected fingerprint and policy owner.
+- [x] Policy changes revoke prior authorization.
+- [x] Confidence is removed from authorization.
+- [x] Missing records are controlled.
+- [x] Nineteen local regressions pass.
+- [x] GenVM lint and validation pass.
+- [ ] Implementation commit and source SHA recorded.
+- [ ] Fresh hardened v2 contract deployed to Bradbury.
+- [ ] Explorer source confirmed to match the repository.
+- [ ] Live exact-fingerprint and altered-fingerprint checks recorded.
+- [ ] Live bad-hash, stale-evidence, missing-ID, and policy-revocation checks recorded.
+- [ ] Deployment address, transaction, and all evidence links added to the test log.
 
-`SemanticPolicyGate`
-
-## Topic
-
-Reusable Semantic Policy Gate for GenLayer Intelligent Contracts
-
-## Description
-
-`SemanticPolicyGate` is a reusable policy-compliance primitive. It lets builders register natural-language policies and resolve whether submitted content, actions, agent outputs, or project submissions should be allowed, denied, or marked for review.
-
-The contract is useful for DAOs, grant programs, bounty platforms, marketplaces, agent systems, escrow workflows, and moderation systems.
-
-## Reusable Value
-
-Instead of every project implementing its own policy review flow, this contract standardizes:
-
-- policy registration
-- policy versioning
-- decision requests
-- resolver profiles
-- structured decision storage
-- confidence thresholds
-- verifier methods
-- fingerprint reuse
-
-## GenLayer Fit
-
-Policy compliance often depends on natural language, evidence, and judgment. GenLayer allows that decision to become an on-chain, consensus-backed result.
+Do not resubmit the historical deployment. Resubmission is ready only after every unchecked deployment item is complete.

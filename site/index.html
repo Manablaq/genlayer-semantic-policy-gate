@@ -4,34 +4,34 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Semantic Policy Gate</title>
-    <meta name="description" content="Documentation for SemanticPolicyGate, a reusable GenLayer Intelligent Contract primitive for policy compliance decisions.">
+    <meta name="description" content="SemanticPolicyGate v2: specification-bound GenLayer policy decisions over authoritative, hash-pinned evidence.">
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="shell">
       <section class="hero">
         <div class="eyebrow">GenLayer Intelligent Contract</div>
-        <h1>Reusable policy decisions for contracts, agents, DAOs, and marketplaces.</h1>
+        <h1>Specification-bound policy decisions over immutable evidence.</h1>
         <p>
-          SemanticPolicyGate registers natural-language policies and resolves submitted content into structured decisions: allowed, denied, needs_review, or error.
+          SemanticPolicyGate v2 binds every result to the exact policy owner and version, subject, full content hashes, authoritative evidence, freshness limits, corroboration rule, and decision lifetime.
         </p>
-        <pre><code>policy + subject + content + context -> allowed / denied / needs_review</code></pre>
+        <pre><code>policy snapshot + evidence commitments + freshness rules -> bound decision</code></pre>
       </section>
 
       <section class="section">
         <h2>Why It Matters</h2>
         <div class="grid">
           <div class="card">
-            <strong>Policy Registry</strong>
-            <p>Versioned policy records keep decisions tied to the exact rules used.</p>
+            <strong>Immutable Specification</strong>
+            <p>A canonical SHA-256 fingerprint commits to every security-relevant input.</p>
           </div>
           <div class="card">
-            <strong>Independent Review</strong>
-            <p>Each validator fetches the registered evidence and reapplies the immutable policy snapshot before agreement.</p>
+            <strong>Verified Evidence</strong>
+            <p>Validators fetch authoritative HTTPS records and verify their complete registered SHA-256 commitments.</p>
           </div>
           <div class="card">
-            <strong>Verifier API</strong>
-            <p>Downstream contracts can call is_allowed, is_denied, needs_review, and is_fresh.</p>
+            <strong>Bound Consumer API</strong>
+            <p>Consumers check the expected fingerprint, policy owner, active policy version, and maximum age.</p>
           </div>
         </div>
       </section>
@@ -44,24 +44,26 @@
       <section class="section">
         <h2>Core API</h2>
         <pre><code>register_policy(name, policy_text) -> u256
-submit_decision(policy_id, subject, content_uri, content_text, context, ttl_seconds) -> u256
+compute_fingerprint(policy + content + evidence specification) -> sha256
+submit_decision(policy + content + evidence specification) -> u256
 resolve_semantic_decision(decision_id) -> None
 get_decision(decision_id) -> Decision
-is_allowed(decision_id, min_confidence) -> bool
-is_denied(decision_id, min_confidence) -> bool
-needs_review(decision_id) -> bool</code></pre>
+is_allowed_for(decision_id, fingerprint, policy_owner, max_age) -> bool
+is_denied_for(decision_id, fingerprint, policy_owner, max_age) -> bool
+needs_review_for(decision_id, fingerprint, policy_owner, max_age) -> bool</code></pre>
       </section>
 
       <section class="section">
-        <h2>Bradbury Smoke Test</h2>
+        <h2>Fail-Closed Verification</h2>
         <p>
-          Every consequential decision uses the same evidence-backed strict-consensus resolver.
+          Fetch errors, stale evidence, hash mismatches, insufficient corroboration, policy changes, and substituted fingerprints cannot authorize an action.
         </p>
         <pre><code>Expected:
 decision: allowed | denied | needs_review
-confidence: canonical for the agreed decision
+content_verified: true
 consensus_bound: true
-is_allowed/is_denied: only for the matching bound outcome</code></pre>
+verified_source_count: 1 | 2
+is_allowed_for: true only for the exact current specification</code></pre>
       </section>
     </main>
   </body>

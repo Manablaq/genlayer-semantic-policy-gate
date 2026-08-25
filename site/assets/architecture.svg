@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
   <title id="title">Semantic Policy Gate architecture</title>
-  <desc id="desc">Diagram of policy registration, decision submission, resolver profiles, and verifier methods.</desc>
+  <desc id="desc">Diagram of versioned policy registration, immutable evidence submission, strict consensus resolution, and bound consumer verification.</desc>
   <rect width="1100" height="620" fill="#f6f7fb"/>
   <rect x="58" y="58" width="984" height="504" rx="16" fill="#fff" stroke="#d8deea"/>
   <text x="92" y="112" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#101828">Semantic Policy Gate</text>
@@ -8,19 +8,19 @@
   <g font-family="Arial, sans-serif">
     <rect x="92" y="214" width="205" height="102" rx="10" fill="#e8f2ff" stroke="#83b7f2"/>
     <text x="120" y="254" font-size="17" font-weight="700" fill="#123b63">1. Register Policy</text>
-    <text x="120" y="280" font-size="14" fill="#31516a">name + policy text</text>
+    <text x="120" y="280" font-size="14" fill="#31516a">owner + version + digest</text>
     <rect x="362" y="214" width="205" height="102" rx="10" fill="#f0ecff" stroke="#b3a2f5"/>
-    <text x="390" y="254" font-size="17" font-weight="700" fill="#3d2e78">2. Submit Decision</text>
-    <text x="390" y="280" font-size="14" fill="#514680">subject + content</text>
+    <text x="390" y="254" font-size="17" font-weight="700" fill="#3d2e78">2. Pin Evidence</text>
+    <text x="390" y="280" font-size="14" fill="#514680">URI + SHA-256 + freshness</text>
     <rect x="632" y="214" width="205" height="102" rx="10" fill="#e9f8ef" stroke="#89d3a5"/>
     <text x="660" y="254" font-size="17" font-weight="700" fill="#1c5c35">3. Resolve</text>
-    <text x="660" y="280" font-size="14" fill="#2d6542">deterministic or semantic</text>
+    <text x="660" y="280" font-size="14" fill="#2d6542">strict validator consensus</text>
     <rect x="362" y="394" width="205" height="102" rx="10" fill="#fff4de" stroke="#e7bd6f"/>
     <text x="390" y="434" font-size="17" font-weight="700" fill="#765019">4. Store Decision</text>
-    <text x="390" y="460" font-size="14" fill="#6b551f">result + confidence</text>
+    <text x="390" y="460" font-size="14" fill="#6b551f">result + verified hashes</text>
     <rect x="632" y="394" width="235" height="102" rx="10" fill="#f7ecef" stroke="#e3a1ae"/>
     <text x="660" y="434" font-size="17" font-weight="700" fill="#7a2638">5. Verify</text>
-    <text x="660" y="460" font-size="14" fill="#754050">is_allowed / is_denied</text>
+    <text x="660" y="460" font-size="14" fill="#754050">fingerprint + owner + age</text>
     <path d="M297 265 H362" stroke="#526070" stroke-width="2" marker-end="url(#arrow)"/>
     <path d="M567 265 H632" stroke="#526070" stroke-width="2" marker-end="url(#arrow)"/>
     <path d="M735 316 V394" stroke="#526070" stroke-width="2" marker-end="url(#arrow)"/>

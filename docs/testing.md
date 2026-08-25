@@ -1,13 +1,39 @@
-# Bradbury Testing Guide
+# Testing
 
-Run the Studio plan in `STUDIO_BRADBURY_TEST_PLAN.md` against a fresh deployment.
+## Local gate
 
-Required evidence for resubmission:
+```bash
+PYTHONPYCACHEPREFIX=/private/tmp/semantic-policy-gate-pycache \
+  python3 -m py_compile contracts/semantic_policy_gate.py \
+  studio_bradbury/semantic_policy_gate.py examples/consumer_contract.py
 
-1. Accepted deployment transaction for the byte-identical Studio source.
-2. A request showing the captured policy snapshot and public evidence URI.
-3. An accepted `resolve_semantic_decision` transaction.
-4. `get_decision` showing a canonical outcome, matching canonical confidence, nonempty evidence digest, and `consensus_bound: true`.
-5. The matching consumer verifier result (`is_allowed` or `is_denied`) at the canonical confidence threshold.
+PYTHONPYCACHEPREFIX=/private/tmp/semantic-policy-gate-pycache \
+  python3 -m unittest discover -s tests -p 'test_*.py'
 
-The regression suite `tests/test_consensus_design.py` checks that the old source-free resolver and shape-only `run_nondet_unsafe` path are absent, that Studio and primary sources match, and that consumer authorization requires the consensus binding.
+cmp contracts/semantic_policy_gate.py studio_bradbury/semantic_policy_gate.py
+git diff --check
+```
+
+Run the configured GenVM linter/validator against `contracts/semantic_policy_gate.py` before every deployment.
+
+## Regression coverage
+
+The behavioral suite verifies:
+
+- complete non-deterministic consensus containment;
+- source parity;
+- strict consensus and integrity validation;
+- policy owner/text/version/active binding;
+- delimiter and suffix collision resistance;
+- fingerprint sensitivity for every security field;
+- full-content hashing;
+- fail-closed fetch and hash mismatch behavior;
+- explicit two-source corroboration;
+- policy revocation and update behavior;
+- TTL, evidence-age, request, and consumer freshness bounds;
+- controlled missing-ID behavior;
+- removal of unsafe confidence and truncated-digest APIs.
+
+## Live tests
+
+Local tests cannot prove deployed source parity or live consensus behavior. Complete `STUDIO_BRADBURY_TEST_PLAN.md` on the fresh Bradbury deployment and record direct Explorer links in `TEST_LOG_BRADBURY.md`.

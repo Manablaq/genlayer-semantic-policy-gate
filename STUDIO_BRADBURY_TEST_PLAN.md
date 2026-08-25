@@ -1,54 +1,96 @@
-# Studio Bradbury Test Plan
+# Studio and Bradbury Test Plan
 
-## Pre-deploy Integrity Check
+This plan produces reviewer-reproducible evidence for the hardened v2 contract. Use the exact committed source; do not edit the Studio copy independently.
 
-1. In GenLayer Studio create `semantic_policy_gate.py`.
-2. Paste `studio_bradbury/semantic_policy_gate.py` exactly.
-3. Confirm it matches `contracts/semantic_policy_gate.py` byte-for-byte in the repository.
-4. Deploy a new instance; do not upgrade or reuse the historical rejected deployment.
-5. Save the address and accepted deployment transaction in `DEPLOYMENT_BRADBURY.md`.
+## 1. Pre-deployment verification
 
-## Smoke Test 1: Register a Policy
-
-Call `register_policy`:
-
-```text
-name: Documentation claim policy
-policy_text: Allow only when the registered evidence explicitly states that the submitted claim is true. Deny only when it explicitly states the opposite. Use needs_review when the evidence is absent, ambiguous, or does not address the claim.
+```bash
+cmp contracts/semantic_policy_gate.py studio_bradbury/semantic_policy_gate.py
+PYTHONPYCACHEPREFIX=/private/tmp/semantic-policy-gate-pycache \
+  python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-## Smoke Test 2: Submit a Decision
+## 2. Deploy
 
-Call `submit_decision` using a stable public HTTPS page as `content_uri`, a matching claim as `subject`, concise supporting `content_text`, and a nonzero TTL.
-
-The request captures the exact policy text and digest. Changing the policy later cannot alter this request's evaluation rule.
-
-## Smoke Test 3: Resolve With Independent Consensus
-
-Call:
-
-```text
-resolve_semantic_decision(decision_id)
+```bash
+genlayer deploy --contract contracts/semantic_policy_gate.py
+export C=0x_REPLACE_WITH_NEW_CONTRACT
 ```
 
-Expected behavior:
+Wait for acceptance/finalization as required by Bradbury before dependent writes.
 
-- Each validator independently fetches the registered URI and reapplies the stored policy.
-- `strict_eq` accepts only an identical canonical decision, confidence, reason code, summary, and evidence digest.
-- The resulting record has `consensus_bound: true`.
+## 3. Register a strict policy
 
-## Smoke Test 4: Verify Consumer Binding
-
-Call `get_decision(decision_id)`, then call one of:
-
-```text
-is_allowed(decision_id, 9500)
-is_denied(decision_id, 9500)
-needs_review(decision_id)
+```bash
+genlayer write "$C" register_policy --args \
+  "Reserved example-domain policy" \
+  "Allow only when both registered authorities establish that example.com, example.net, and example.org are reserved for documentation and examples."
 ```
 
-Only the method matching the stored canonical decision can return `true`; `is_allowed` and `is_denied` also require `consensus_bound: true` and freshness.
+Use policy ID `1` in a fresh deployment.
 
-## Regression Check
+## 4. Compute and submit an immutable evidence request
 
-Do not look for or call `resolve_required_fields_decision`: it was removed because it could create authorization-relevant decisions without independent evidence review.
+```bash
+OBS=$(date +%s)
+
+genlayer call "$C" compute_fingerprint --args \
+  1 "Reserved example domains" \
+  "example.com, example.net, and example.org are reserved for documentation and examples." \
+  "Bradbury v2 regression" \
+  "https://www.iana.org/help/example-domains" \
+  "6fde51fc02d67b032e17adfe1ae5c67daf2c01bed20f533b7754ee32e14c4bc9" \
+  "IANA" \
+  "https://www.rfc-editor.org/rfc/rfc2606.txt" \
+  "b6869c8984701701bc2e6973b6ffc750d497f845cc1a65a106e9301590a13ab0" \
+  "RFC Editor / IETF" \
+  "IANA help page and RFC 2606 observed for hardened v2" \
+  "$OBS" 86400 2 604800
+
+genlayer write "$C" submit_decision --args \
+  1 "Reserved example domains" \
+  "example.com, example.net, and example.org are reserved for documentation and examples." \
+  "Bradbury v2 regression" \
+  "https://www.iana.org/help/example-domains" \
+  "6fde51fc02d67b032e17adfe1ae5c67daf2c01bed20f533b7754ee32e14c4bc9" \
+  "IANA" \
+  "https://www.rfc-editor.org/rfc/rfc2606.txt" \
+  "b6869c8984701701bc2e6973b6ffc750d497f845cc1a65a106e9301590a13ab0" \
+  "RFC Editor / IETF" \
+  "IANA help page and RFC 2606 observed for hardened v2" \
+  "$OBS" 86400 2 604800
+```
+
+Save the computed fingerprint and use decision ID `1` on a fresh deployment.
+
+## 5. Resolve and inspect
+
+```bash
+genlayer write "$C" resolve_semantic_decision --args 1
+genlayer call "$C" get_decision --args 1
+```
+
+Verify `content_verified: true`, `consensus_bound: true`, `verified_source_count: 2`, exact observed hashes, and a bounded expiry.
+
+## 6. Consumer-binding regressions
+
+```bash
+genlayer call "$C" is_allowed_for --args \
+  1 "$FINGERPRINT" 0x_REPLACE_WITH_POLICY_OWNER 3600
+
+genlayer call "$C" is_allowed_for --args \
+  1 "f${FINGERPRINT:1}" 0x_REPLACE_WITH_POLICY_OWNER 3600
+
+genlayer call "$C" is_allowed_for --args \
+  999 "$FINGERPRINT" 0x_REPLACE_WITH_POLICY_OWNER 3600
+```
+
+Expected results are `true`, `false`, and `false`.
+
+## 7. Fail-closed and revocation regressions
+
+- Submit a fresh request with one changed character in a registered SHA-256, then show resolution fails without creating a decision.
+- Submit with an observation time older than the registered maximum age and show submission is rejected.
+- Deactivate policy `1`, then repeat the previously true `is_allowed_for` call and show it returns `false`.
+
+Record every accepted, rejected, and controlled-failure transaction in `TEST_LOG_BRADBURY.md` with direct Explorer links.

@@ -1,22 +1,26 @@
-# Semantic Policy Gate Guide
+# Integration Guide
 
-## Lifecycle
+## Policy publishers
 
-1. A policy owner registers a versioned natural-language policy.
-2. A requester submits content and an optional public evidence URI.
-3. The contract snapshots the exact policy text, policy digest, evidence inputs, and expiry.
-4. Validators independently fetch the URI and apply that same snapshot.
-5. Strict equality accepts one canonical result before it is written on-chain.
-6. Consumers call `is_allowed`, `is_denied`, `needs_review`, or `is_fresh`.
+Register precise policy text, retain the returned policy ID, and publish the owner address and policy digest that consumers should trust. Any update creates a new version and invalidates earlier decisions for authorization.
 
-## Independent Validation
+## Decision requesters
 
-The validator does not validate a leader's response shape. It repeats the consequential work: fetches the registered evidence and reapplies the registered policy. The accepted payload includes the outcome, canonical confidence, reason, summary, and evidence digest. Confidence is a function of the agreed outcome, not an untrusted model-supplied number.
+Choose authoritative HTTPS sources whose complete response bodies can be stably SHA-256 pinned. Record a clear evidence version and observation timestamp. Use two independently named authorities where the decision warrants corroboration. Compute the expected fingerprint before submission and retain it alongside the business action.
 
-## Consumer Safety
+## Resolvers
 
-`is_allowed` and `is_denied` require both freshness and `consensus_bound = true`. A result that has not passed strict agreement cannot become an authorization signal.
+Resolve within 24 hours while the evidence remains fresh and the policy snapshot is current. A failed resolution does not create a decision; correct the evidence record and submit a new request rather than weakening integrity rules.
 
-## Policy Updates
+## Consumers
 
-Policy updates create a new version. Existing requests keep their original policy snapshot, preventing policy drift between request and resolution.
+Never accept a decision ID alone. Store the expected fingerprint and expected policy owner in trusted application or contract state, choose a consumer-specific maximum age, and call `is_allowed_for`, `is_denied_for`, or `needs_review_for`. See `examples/consumer_contract.py`.
+
+## Operational guidance
+
+- Prefer immutable documents or explicit document versions.
+- Hash the exact bytes returned by the registered URI.
+- Avoid mutable landing pages when a versioned record is available.
+- Treat `needs_review` and `error` as non-authorization outcomes.
+- Recompute and compare fingerprints before submitting transactions.
+- Monitor policy version and active status before presenting decisions to users.

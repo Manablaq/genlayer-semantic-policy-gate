@@ -1,99 +1,87 @@
 # API Manifest
 
-## Contract
+All IDs are `u256`, timestamps are Unix seconds, hashes are lowercase 64-character SHA-256 hex strings, and addresses are GenLayer `Address` values.
 
-`SemanticPolicyGate`
+## Write methods
 
-## Write Methods
+### `register_policy(name, policy_text) -> policy_id`
 
-```python
-register_policy(name: str, policy_text: str) -> u256
-update_policy(policy_id: u256, name: str, policy_text: str) -> None
-set_policy_active(policy_id: u256, active: bool) -> None
-submit_decision(policy_id: u256, subject: str, content_uri: str, content_text: str, context: str, ttl_seconds: u256) -> u256
-resolve_semantic_decision(decision_id: u256) -> None
-```
+Creates an active, owner-controlled policy at version 1 and stores its canonical digest.
 
-`submit_decision` snapshots `policy_name`, `policy_text`, `policy_digest`, evidence inputs, and expiry. `resolve_semantic_decision` independently evaluates that immutable snapshot on every validator and accepts only strict equality of the full canonical result.
+### `update_policy(policy_id, name, policy_text)`
 
-## View Methods
+Policy-owner only. Replaces the specification, increments the version, reactivates the policy, and creates a new digest. Older decisions immediately fail consumer authorization.
 
-```python
-get_policy(policy_id: u256) -> Policy
-get_decision(decision_id: u256) -> Decision
-get_latest_decision_by_fingerprint(...) -> u256
-is_allowed(decision_id: u256, min_confidence: u32) -> bool
-is_denied(decision_id: u256, min_confidence: u32) -> bool
-needs_review(decision_id: u256) -> bool
-is_fresh(decision_id: u256) -> bool
-```
+### `set_policy_active(policy_id, active)`
 
-`is_allowed` and `is_denied` require a fresh `consensus_bound` decision. They cannot authorize from a schema-valid but unbound result.
+Policy-owner only. Any activation change increments the version and digest. Deactivation revokes consumption of prior decisions.
 
-## Decision Codes
+### `submit_decision(...) -> decision_id`
+
+Parameters, in order:
 
 ```text
-0 = unknown
-1 = allowed
-2 = denied
-3 = needs_review
-4 = error
+policy_id
+subject
+content_text
+context
+primary_evidence_uri
+primary_evidence_sha256
+primary_authority
+corroborating_evidence_uri
+corroborating_evidence_sha256
+corroborating_authority
+evidence_version
+evidence_observed_at
+max_evidence_age_seconds
+minimum_sources
+ttl_seconds
 ```
 
-## Storage Types
+The request stores a snapshot of the current policy and a canonical fingerprint. `minimum_sources` must be 1 or 2. Corroborating fields may be empty only when one source is sufficient. A zero TTL selects the seven-day default; allowed TTLs are five minutes through 30 days. Evidence age must be 60 seconds through 30 days, and evidence must still be fresh when submitted.
 
-### Policy
+### `resolve_semantic_decision(decision_id)`
 
-```python
-policy_id: u256
-owner: Address
-name: str
-policy_text: str
-version: u256
-policy_digest: str
-created_at: u256
-active: bool
-```
+Fetches and hashes the registered evidence inside the non-deterministic execution boundary, evaluates the policy, and commits a strict consensus result. The request must resolve within 24 hours, the policy snapshot must still match the active policy, and every required source must match its registered hash. The resulting expiry is capped by both decision TTL and evidence freshness.
 
-### DecisionRequest
+## View methods
 
-```python
-requester: Address
-policy_id: u256
-policy_version: u256
-policy_name: str
-policy_text: str
-policy_digest: str
-subject: str
-content_uri: str
-content_text: str
-context: str
-fingerprint: str
-created_at: u256
-expires_at: u256
-resolved: bool
-```
+### `compute_fingerprint(...) -> str`
 
-### Decision
+Uses the same arguments as `submit_decision` and returns the canonical expected fingerprint without changing state. A zero TTL is normalized to the default.
 
-```python
-decision_id: u256
-requester: Address
-policy_id: u256
-policy_version: u256
-subject: str
-content_uri: str
-content_digest: str
-context_digest: str
-fingerprint: str
-decision: u32
-confidence: u32
-reason_code: str
-summary: str
-evidence_digest: str
-consensus_bound: bool
-created_at: u256
-resolved_at: u256
-expires_at: u256
-resolver: Address
-```
+### `get_policy(policy_id) -> object`
+
+Returns policy owner, name, text, version, digest, timestamps, and active state. Unknown IDs raise `unknown policy`.
+
+### `get_request(decision_id) -> object`
+
+Returns the immutable request snapshot and evidence rules. Unknown IDs raise `unknown request`.
+
+### `get_decision(decision_id) -> object`
+
+Returns the resolved decision, verified hashes, source count, fingerprint, consensus flag, and expiry. Unknown IDs raise `unknown decision`.
+
+### `get_latest_decision_by_fingerprint(fingerprint) -> decision_id`
+
+Returns the latest currently usable decision ID for an exact fingerprint, or `0` when none is available.
+
+### `is_allowed_for(decision_id, expected_fingerprint, expected_policy_owner, consumer_max_age_seconds) -> bool`
+
+Returns true only for a current, active-policy, consensus-bound, content-verified allowed decision matching every consumer expectation.
+
+### `is_denied_for(decision_id, expected_fingerprint, expected_policy_owner, consumer_max_age_seconds) -> bool`
+
+Applies the same binding and freshness checks for a denied decision.
+
+### `needs_review_for(decision_id, expected_fingerprint, expected_policy_owner, consumer_max_age_seconds) -> bool`
+
+Applies the same binding and freshness checks for a needs-review decision.
+
+### `is_fresh_for(decision_id, expected_fingerprint, expected_policy_owner, consumer_max_age_seconds) -> bool`
+
+Checks decision existence, fingerprint, policy owner, current policy state, contract expiry, resolution timestamp, and the consumer's stricter maximum age. It does not authorize an outcome by itself.
+
+## Limits
+
+Fetched evidence is capped at 12,000 bytes per source. Text, URI, authority, and version fields have explicit on-chain length limits. Source fetch errors, oversized bodies, hash mismatches, stale evidence, expired requests, policy changes, and insufficient verified sources fail closed.
