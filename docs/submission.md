@@ -12,7 +12,7 @@
 - [x] Nineteen local regressions pass.
 - [x] GenVM lint and validation pass.
 - [x] Implementation commit and source SHA recorded.
-- [ ] Fresh hardened v2 contract deployed to Bradbury.
+- [x] Fresh hardened v2 contract deployed to Bradbury.
 - [ ] Explorer source confirmed to match the repository.
 - [ ] Live exact-fingerprint and altered-fingerprint checks recorded.
 - [ ] Live bad-hash, stale-evidence, missing-ID, and policy-revocation checks recorded.

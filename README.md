@@ -50,7 +50,7 @@ The suite currently contains 19 regressions covering fingerprint collisions, suf
 
 ## Deployment status
 
-The original Bradbury deployment is historical and must not be submitted as the hardened contract. A fresh v2 deployment and matching Explorer source are required. See `DEPLOYMENT_BRADBURY.md` and `STUDIO_BRADBURY_TEST_PLAN.md`.
+Hardened v2 is deployed on Bradbury at [`0xD16a0c53cE55734499554b9ef5919dc98B9Af6f0`](https://explorer-bradbury.genlayer.com/address/0xD16a0c53cE55734499554b9ef5919dc98B9Af6f0). The original deployment remains historical and must not be submitted as v2 evidence. Live security regressions are still being recorded; see `DEPLOYMENT_BRADBURY.md` and `STUDIO_BRADBURY_TEST_PLAN.md`.
 
 ## License
 

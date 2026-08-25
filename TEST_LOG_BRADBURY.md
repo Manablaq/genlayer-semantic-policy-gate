@@ -19,11 +19,11 @@ The 19 regressions cover canonical fingerprint binding, delimiter and suffix col
 
 ## Hardened v2 Bradbury evidence
 
-Live evidence is intentionally pending until a fresh v2 deployment exists.
+The fresh v2 deployment is recorded below. Remaining live regressions are added only after their transactions or controlled read results are observed.
 
 | Flow | Expected result | Transaction / observation |
 |---|---|---|
-| Fresh deployment | accepted | `PENDING` |
+| Fresh deployment | accepted | [`0x2f8557…a997`](https://explorer-bradbury.genlayer.com/tx/0x2f85572738370619f06da6eeb812dd9a784cbb2d8b3fe014b039ccc440e8a997) — contract [`0xD16a…f6f0`](https://explorer-bradbury.genlayer.com/address/0xD16a0c53cE55734499554b9ef5919dc98B9Af6f0) |
 | Register policy | accepted | `PENDING` |
 | Submit hash-pinned two-source request | accepted | `PENDING` |
 | Resolve request | accepted with verified source count 2 | `PENDING` |
